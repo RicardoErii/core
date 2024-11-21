@@ -177,7 +177,7 @@ export function defineCustomElement(
   class VueCustomElement extends VueElement {
     static def = Comp
     constructor(initialProps?: Record<string, any>) {
-      super(Comp, initialProps, _createApp)
+      super(Comp, initialProps, extraOptions, _createApp)
     }
   }
 
@@ -250,6 +250,7 @@ export class VueElement
      */
     private _def: InnerComponentDef,
     private _props: Record<string, any> = {},
+    private _extraOptions: ComponentOptions = {},
     private _createApp: CreateAppFunction<Element> = createApp,
   ) {
     super()
@@ -403,9 +404,12 @@ export class VueElement
 
     const asyncDef = (this._def as ComponentOptions).__asyncLoader
     if (asyncDef) {
-      this._pendingResolve = asyncDef().then(def =>
-        resolve((this._def = def), true),
-      )
+      this._pendingResolve = asyncDef().then(def => {
+        if (isPlainObject(def)) {
+          extend(def, this._extraOptions)
+        }
+        return resolve((this._def = def), true)
+      })
     } else {
       resolve(this._def)
     }
